@@ -34,6 +34,13 @@ cd /config
 echo "== Paso 1/2: registrando proyectos del workspace =="
 java -jar "$LAUNCHER_JAR" -nosplash -consoleLog -data "$WORKSPACE_DIR" -application WorkspaceImporter.import
 
+if [ "${1:-}" = "apply" ]; then
+  echo "== Aplicando extracción calculada (docker/apply-request.properties) =="
+  exec java -jar "$LAUNCHER_JAR" -nosplash -consoleLog -data "$WORKSPACE_DIR" \
+    -DapplyRequest="${APPLY_REQUEST_FILE:-/workspace/apply-request.properties}" \
+    -application ReduceCognitiveComplexity.applyCodeExtractions
+fi
+
 echo "== Paso 2/2: análisis de complejidad cognitiva =="
 java \
   -Xmx8G \

@@ -124,13 +124,13 @@ public class Solution {
         this.compilationUnit = compilationUnit;
 
         // Pattern to match arrays of numbers: "[123 456]"
-        Pattern p = Pattern.compile("\\[([0-9\\s]+)\\]");
+        Pattern p = Pattern.compile("\\[([0-9,\\s]+)\\]");
         Matcher m = p.matcher(solutionString);
 
         while (m.find()) {
-            // content inside brackets: "123 456 789"
+            // content inside brackets: "123, 456, 789" (Sequence.toString() usa comas)
             String value = m.group(1); 
-            String[] offsets = value.split("\\s+");
+            String[] offsets = value.split("[,\\s]+");
 
             List<ASTNode> nodes = new ArrayList<>();
             for (String offsetStr : offsets) {

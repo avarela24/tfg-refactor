@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ---------- STAGE 1: build the headless product with Tycho ----------
 FROM maven:3.9-eclipse-temurin-21 AS builder
 
@@ -36,7 +37,8 @@ RUN find plugin/ReduceCognitiveComplexity/src/test/resources -maxdepth 1 -name '
 
 COPY product product
 
-RUN mvn -B -ntp verify -Dmaven.test.skip=true
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -ntp verify -Dmaven.test.skip=true
 
 RUN mkdir -p /opt/product && \
     cp -r product/target/products/ReduceCognitiveComplexityProduct/linux/gtk/x86_64/* /opt/product/
