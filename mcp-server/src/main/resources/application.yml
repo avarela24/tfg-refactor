@@ -1,0 +1,16 @@
+spring:
+  ai:
+    mcp:
+      server:
+        name: reduce-cognitive-complexity-mcp
+        version: 1.0.0-SNAPSHOT
+        type: SYNC
+        protocol: STREAMABLE
+
+server:
+  port: 8081
+
+reducecc:
+  workspace-dir: C:/Users/Usuario/Documents/tfg-refactor/workspace
+  output-dir: C:/Users/Usuario/Documents/tfg-refactor/output
+  docker-image: reduce-cc
