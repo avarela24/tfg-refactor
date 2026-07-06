@@ -402,9 +402,24 @@ public class Solution {
      * @throws CoreException when processing undoing code extractions
      */
     public boolean applyExtractMethodsRefactoring(boolean printDebuggingInformation) throws CoreException {
+        return applyExtractMethodsRefactoring(printDebuggingInformation, null);
+    }
+
+    /**
+     * Igual que {@link #applyExtractMethodsRefactoring(boolean)}, pero acepta
+     * nombres personalizados para los métodos extraídos.
+     *
+     * @param customNames nombres en el mismo orden en que se presentan las
+     *                     extracciones (Extraction 1, Extraction 2, ...).
+     *                     {@code null} o vacío mantiene el comportamiento
+     *                     autogenerado de siempre. Un hueco en blanco en una
+     *                     posición concreta también cae al nombre
+     *                     autogenerado solo para esa extracción.
+     */
+    public boolean applyExtractMethodsRefactoring(boolean printDebuggingInformation, List<String> customNames) throws CoreException {
         try {
             // Pass a no-op action
-            return applyExtractionsInternal(printDebuggingInformation, (index, cu) -> {});
+            return applyExtractionsInternal(printDebuggingInformation, (index, cu) -> {}, customNames);
         } catch (IOException e) {
             // Should not happen as the no-op action doesn't throw IOException
             e.printStackTrace();
@@ -462,14 +477,14 @@ public class Solution {
         };
 
         // 3. Delegate to the internal engine
-        return applyExtractionsInternal(printDebuggingInformation, writeAction);
+        return applyExtractionsInternal(printDebuggingInformation, writeAction, null);
     }
 
     /**
      * Internal engine that performs the extractions.
      * Contains the core logic for offsets, nesting, and imports.
      */
-    private boolean applyExtractionsInternal(boolean printDebuggingInformation, PostExtractionAction postAction) throws CoreException, IOException {
+    private boolean applyExtractionsInternal(boolean printDebuggingInformation, PostExtractionAction postAction, List<String> customNames) throws CoreException, IOException {
         boolean extractionsApplied = true;
         String currentMethodName = null;
         CodeExtractionMetrics extractionMetrics;
@@ -538,9 +553,18 @@ public class Solution {
                 }
             }
 
-            // Generate Method Name
-            currentMethodName = this.methodName + "_extraction_" + (indexOfExtraction + 1);
-            currentMethodName = currentMethodName.replaceFirst("^.", currentMethodName.substring(0, 1).toLowerCase());
+            // Generate Method Name (nombre del LLM si se ha suministrado; autogenerado si no)
+            int extractionNumber = rangesForExtractions.size() - indexOfExtraction;
+            String customName = (customNames != null && customNames.size() >= extractionNumber)
+                    ? customNames.get(extractionNumber - 1)
+                    : null;
+
+            if (customName != null && !customName.isBlank()) {
+                currentMethodName = customName;
+            } else {
+                currentMethodName = this.methodName + "_extraction_" + (indexOfExtraction + 1);
+                currentMethodName = currentMethodName.replaceFirst("^.", currentMethodName.substring(0, 1).toLowerCase());
+            }
             if (printDebuggingInformation) LOGGER.info("New method name = " + currentMethodName);
 
             // Perform Extraction

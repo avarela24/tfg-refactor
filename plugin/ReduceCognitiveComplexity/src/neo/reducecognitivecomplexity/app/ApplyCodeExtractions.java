@@ -77,10 +77,18 @@ public class ApplyCodeExtractions implements IApplication {
 		CompilationUnit cu = neo.reducecognitivecomplexity.core.jdt.Utils
 				.createCompilationUnitFromFileInWorkspace(workspaceRelativePath);
 
+		String namesProperty = props.getProperty("names");
+		java.util.List<String> customNames = null;
+		if (namesProperty != null && !namesProperty.isBlank()) {
+			customNames = java.util.Arrays.stream(namesProperty.split(","))
+					.map(String::trim)
+					.collect(java.util.stream.Collectors.toList());
+		}
+
 		int complexity = Integer.parseInt(complexityStr);
 		Solution solution = new Solution(cu, solutionString, complexity);
 
-		boolean applied = solution.applyExtractMethodsRefactoring(true);
+		boolean applied = solution.applyExtractMethodsRefactoring(true, customNames);
 
 		if (applied) {
 			LOGGER.info("Extracción aplicada correctamente sobre el método: " + solution.getMethodName());
