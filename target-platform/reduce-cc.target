@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<!--
+  Unidades base para compilar el bundle. Si en el futuro Tycho se queja de
+  que le falta alguna (suele pasar con bundles de terceros como
+  org.commonmark o com.github.weisj.jsvg, que en algunos trenes de release
+  viven en el repositorio de Orbit en vez de en el principal), añadid la
+  unidad que falte a la lista de abajo, o añadid como <repository>
+  adicional:
+    https://download.eclipse.org/tools/orbit/simrel/orbit-aggregation/<release>
+
+  Fijado a la carpeta fechada 2026-06 (en vez de "releases/latest") para
+  que los experimentos del TFG sean reproducibles en el tiempo: esta URL
+  no cambiará de contenido aunque Eclipse publique una release nueva.
+-->
+<target name="reduce-cognitive-complexity-linux" sequenceNumber="1">
+	<locations>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rcp.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
+			<unit id="com.google.gson" version="0.0.0"/>
+			<unit id="org.junit" version="0.0.0"/>
+			<unit id="junit-jupiter-api" version="0.0.0"/>
+			<unit id="junit-jupiter-engine" version="0.0.0"/>
+			<repository location="https://download.eclipse.org/releases/2026-06/"/>
+		</location>
+	</locations>
+	<targetJRE path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21"/>
+	<environment>
+		<os>linux</os>
+		<ws>gtk</ws>
+		<arch>x86_64</arch>
+	</environment>
+</target>

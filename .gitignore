@@ -1,0 +1,10 @@
+# Software con licencia
+cplex-linux/*.bin
+
+# Estado de ejecución
+workspace/
+output/
+
+# Artefactos de compilación de Tycho/Maven
+**/target/
+*.log

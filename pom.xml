@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>neo.reducecognitivecomplexity</groupId>
+  <artifactId>reduce-cognitive-complexity-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <!--
+    Este pom.xml va en la RAÍZ del repositorio. El contenido original del
+    plugin (META-INF/, plugin.xml, src/, lib/, build.properties) se mueve,
+    tal cual, a plugin/ReduceCognitiveComplexity/. No hace falta tocar ni
+    una línea de ese código: Tycho lee el MANIFEST.MF/plugin.xml existentes.
+  -->
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <tycho-version>4.0.9</tycho-version>
+    <target-platform-file>${maven.multiModuleProjectDirectory}/target-platform/reduce-cc.target</target-platform-file>
+  </properties>
+
+  <modules>
+    <module>plugin/ReduceCognitiveComplexity</module>
+    <module>plugin/WorkspaceImporter</module>
+    <module>product</module>
+  </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-maven-plugin</artifactId>
+        <version>${tycho-version}</version>
+        <extensions>true</extensions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>target-platform-configuration</artifactId>
+        <version>${tycho-version}</version>
+        <configuration>
+          <target>
+            <file>${target-platform-file}</file>
+          </target>
+          <environments>
+            <environment>
+              <os>linux</os>
+              <ws>gtk</ws>
+              <arch>x86_64</arch>
+            </environment>
+          </environments>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-compiler-plugin</artifactId>
+        <version>${tycho-version}</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-p2-director-plugin</artifactId>
+        <version>${tycho-version}</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?pde version="3.5"?>
+
+<product name="ReduceCognitiveComplexityProduct" uid="ReduceCognitiveComplexityProduct" id="ReduceCognitiveComplexity.product" application="ReduceCognitiveComplexity.application" version="1.0.0.qualifier" type="bundles" includeLaunchers="true" includeJRE="true" autoIncludeRequirements="true">
+
+   <configIni use="default">
+   </configIni>
+
+   <launcherArgs>
+   </launcherArgs>
+
+   <launcher>
+      <win useIco="false">
+         <bmp/>
+      </win>
+   </launcher>
+
+   <vm>
+   </vm>
+
+   <plugins>
+      <plugin id="ReduceCognitiveComplexity"/>
+      <plugin id="WorkspaceImporter"/>
+      <plugin id="org.eclipse.equinox.app"/>
+      <plugin id="org.apache.felix.scr"/>
+      <plugin id="org.eclipse.equinox.common"/>
+      <plugin id="org.eclipse.equinox.event"/>
+      <plugin id="org.eclipse.equinox.simpleconfigurator"/>
+   </plugins>
+
+   <configurations>
+      <plugin id="org.apache.felix.scr" autoStart="true" startLevel="2" />
+      <plugin id="org.eclipse.core.runtime" autoStart="true" startLevel="0" />
+      <plugin id="org.eclipse.equinox.common" autoStart="true" startLevel="2" />
+      <plugin id="org.eclipse.equinox.event" autoStart="true" startLevel="2" />
+      <plugin id="org.eclipse.equinox.simpleconfigurator" autoStart="true" startLevel="1" />
+   </configurations>
+
+</product>
