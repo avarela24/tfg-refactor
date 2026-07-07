@@ -43,6 +43,7 @@ public class DockerApplyService {
 		List<String> command = List.of(
 				"docker", "run", "--rm",
 				"-v", workspaceDir + ":/workspace",
+				"-v", "mcp-maven-cache:/root/.m2",
 				"-v", outputDir + ":/config/output",
 				dockerImage, "apply");
 
