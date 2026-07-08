@@ -1,0 +1,29 @@
+{
+  "name": "github-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A Probot app",
+  "author": "avarela24",
+  "license": "ISC",
+  "homepage": "https://github.com//",
+  "keywords": [
+    "probot",
+    "github",
+    "probot-app"
+  ],
+  "scripts": {
+    "start": "probot run ./index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "probot": "^14.3.2"
+  },
+  "devDependencies": {
+    "nock": "^14.0.12",
+    "smee-client": "^5.0.0"
+  },
+  "engines": {
+    "node": "^20.18.1 || >= 22"
+  },
+  "type": "module"
+}
