@@ -13,6 +13,12 @@ export default (app) => {
     return context.octokit.rest.issues.createComment(issueComment);
   });
 
+  app.on("push", async (context) => {
+    app.log.info("Push recibido en: " + context.payload.repository.full_name);
+    app.log.info("Rama: " + context.payload.ref);
+    app.log.info("Commits: " + context.payload.commits.length);
+  });
+
   // For more information on building apps:
   // https://probot.github.io/docs/
 
