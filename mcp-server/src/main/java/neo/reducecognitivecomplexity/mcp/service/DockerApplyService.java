@@ -1,4 +1,6 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.service;
+
+import neo.reducecognitivecomplexity.mcp.model.ApplyResult;
 
 import java.io.BufferedReader;
 import java.io.FileWriter;

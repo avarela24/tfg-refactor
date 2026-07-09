@@ -1,4 +1,6 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.service;
+
+import neo.reducecognitivecomplexity.mcp.model.CloneResult;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -24,19 +26,23 @@ public class DockerCloneService {
 	@Value("${reducecc.workspace-dir}")
 	private String workspaceDir;
 
-	public CloneResult cloneProject(String gitUrl, String projectName, String branch) throws Exception {
+	public CloneResult cloneProject(String gitUrl, String projectName, String branch, boolean forceClean) throws Exception {
 		String resolvedName = (projectName == null || projectName.isBlank())
 				? deriveProjectName(gitUrl)
 				: projectName;
 
 		Path targetDir = Paths.get(workspaceDir, resolvedName);
 		if (Files.exists(targetDir)) {
-			CloneResult result = new CloneResult();
-			result.success = false;
-			result.projectName = resolvedName;
-			result.message = "Ya existe una carpeta '" + resolvedName
-					+ "' en el workspace. Bórrala primero si quieres re-clonar.";
-			return result;
+			if (forceClean) {
+				deleteRecursively(targetDir);
+			} else {
+				CloneResult result = new CloneResult();
+				result.success = false;
+				result.projectName = resolvedName;
+				result.message = "Ya existe una carpeta '" + resolvedName
+						+ "' en el workspace. Usa forceClean=true para volver a clonar desde cero.";
+				return result;
+			}
 		}
 
 		List<String> command = new ArrayList<>(List.of(
@@ -96,5 +102,13 @@ public class DockerCloneService {
 		}
 		int lastSlash = cleaned.lastIndexOf('/');
 		return lastSlash >= 0 ? cleaned.substring(lastSlash + 1) : cleaned;
+	}
+
+	private void deleteRecursively(Path dir) throws Exception {
+		try (var walk = Files.walk(dir)) {
+			walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+				try { Files.delete(p); } catch (Exception e) { throw new RuntimeException(e); }
+			});
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.model;
 
 /** Un fragmento de código candidato a extracción, con el texto ya resuelto por JDT. */
 public class ExtractionSnippet {

@@ -1,4 +1,6 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.service;
+
+import neo.reducecognitivecomplexity.mcp.model.PrepareResult;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

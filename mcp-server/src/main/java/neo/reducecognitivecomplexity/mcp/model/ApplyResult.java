@@ -1,4 +1,4 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.model;
 
 public class ApplyResult {
 	public boolean success;

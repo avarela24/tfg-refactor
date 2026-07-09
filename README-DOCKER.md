@@ -1,26 +1,27 @@
 # Build Linux/Tycho + Docker para SoftwareCognitiveComplexityReducer
 
-## 1. Estructura del repositorio
+Este documento cubre solo la pieza de análisis/aplicación en Docker
+(`reduce-cc`). Para el sistema completo (servidor MCP, bot de GitHub),
+ver el `README.md` de la raíz del repositorio.
+
+## 1. Estructura de esta pieza
 
 ```
 .
-├── pom.xml                        Reactor Tycho (raíz)
+├── pom.xml                    Reactor Tycho (raíz)
 ├── target-platform/
-│   └── reduce-cc.target           Plataforma de compilación (linux/gtk/x86_64)
+│   └── reduce-cc.target       Plataforma de compilación (linux/gtk/x86_64)
 ├── plugin/
-│   ├── ReduceCognitiveComplexity/ Cognitive Complexity Reduction Tool
-│   └── WorkspaceImporter/         Registra proyectos en el workspace
-├── product/                       Ensambla el producto Eclipse headless ejecutable
+│   ├── ReduceCognitiveComplexity/ Herramienta original + ApplyCodeExtractions
+│   └── WorkspaceImporter/     Registra proyectos en el workspace
+├── product/                   Ensambla el producto Eclipse headless ejecutable
 ├── docker/
-│   ├── Dockerfile                 Build multi-stage (Tycho + CPLEX -> runtime)
-│   ├── entrypoint.sh              Orquesta los 2 pasos (importar + analizar)
-│   ├── config.properties          Config del analizador dentro del contenedor
-│   └── docker-compose.snippet.yml Cómo invocarlo desde un futuro MCP server/n8n TODO
-├── cplex-linux/
-│   ├── cplex-installer.bin        Instalador CPLEX para Linux
-│   └── install.properties         Config de instalación silenciosa
-└── examples/
-    └── ProyectoDeJuguete/          Proyecto Java mínimo para smoke tests rápidos
+│   ├── Dockerfile             Build multi-stage (Tycho + CPLEX -> runtime)
+│   ├── entrypoint.sh          Orquesta los pasos (importar / analizar / apply)
+│   └── config.properties      Config del analizador dentro del contenedor
+└── cplex-linux/
+    ├── cplex-installer.bin    Instalador CPLEX para Linux (no va al repo)
+    └── install.properties     Config de instalación silenciosa
 ```
 
 ## 2. Qué hace falta para construir la imagen
@@ -51,12 +52,25 @@ docker run --rm `
   `ES-LSF`/`ES-SSF` (heurísticos — **ver aviso importante más abajo**).
 - El tercer argumento (`generateGraphs`) es del programa original.
 
-Smoke test rápido con el proyecto de ejemplo incluido:
+Smoke test rápido: coloca cualquier proyecto Java con `.project`/`.classpath`
+en `workspace\<NombreProyecto>\` (si no los tiene, generarlos es tarea de
+la tool `prepare_project` del servidor MCP, no de este contenedor) y:
 ```powershell
 mkdir workspace, output -ea 0
-Copy-Item -Recurse .\examples\ProyectoDeJuguete .\workspace\
-docker run --rm -v "${PWD}\workspace:/workspace" -v "${PWD}\output:/config/output" reduce-cc ProyectoDeJuguete ILP false
+docker run --rm -v "${PWD}\workspace:/workspace" -v "${PWD}\output:/config/output" reduce-cc <NombreProyecto> ILP false
 ```
+
+**Modo "apply"**: aplica de verdad, sobre el archivo real, una extracción
+ya calculada (con nombres personalizados en vez de los autogenerados).
+Espera un `workspace/apply-request.properties` con `project`,
+`relativePath`, `complexity`, `solution` y `names` (ver
+`plugin/ReduceCognitiveComplexity/src/.../app/ApplyCodeExtractions.java`
+para el formato exacto):
+```powershell
+docker run --rm -v "${PWD}\workspace:/workspace" -v "${PWD}\output:/config/output" reduce-cc apply
+```
+En la práctica, esto lo invoca el servidor MCP (tool `apply_names`), no
+se suele ejecutar a mano.
 
 ## 4. Aviso importante: bug conocido en los solvers heurísticos
 
@@ -97,12 +111,18 @@ preparado para el autor original (pedidlo si no lo tenéis a mano).
   caso de estudio (como GildedRose) se colocan ahí en tiempo de uso, no
   viven dentro de este repositorio.
 
-## 6. Pendiente
+## 6. Qué queda fuera de esta pieza (ver README.md raíz)
 
-- Aplicar de verdad la extracción que calcula el solver (`Solution.
-  applyExtractMethodsRefactoring()` existe en el código original pero
-  ninguna aplicación lo invoca todavía) — es el enganche natural para que
-  el LLM nombre los métodos extraídos.
-- Servidor MCP en Spring que orqueste todo esto.
-- Generación automática de `.project`/`.classpath` para repos de GitHub
-  que no los traigan ya (Maven/Gradle "a pelo").
+Esto (`reduce-cc`) es deliberadamente solo el motor de análisis/aplicación.
+Todo lo demás vive en otros módulos del repositorio:
+
+- Aplicar una extracción con nombres elegidos por un LLM: ya resuelto
+  (`ApplyCodeExtractions` + modo `apply`), pero quien decide el nombre y
+  orquesta la llamada es el servidor MCP, no este contenedor.
+- Clonar repos, generar `.project`/`.classpath` si faltan, invocar este
+  contenedor y exponerlo como tools: `mcp-server/`.
+- Disparo automático ante un push de GitHub y apertura de PR: `github-bot/`.
+
+Pendiente real, todavía sin resolver: el bug de los solvers heurísticos
+(sección 4) y el soporte de Gradle en la generación de `.classpath`
+(`mcp-server`, de momento solo detecta Gradle y avisa, no lo resuelve).

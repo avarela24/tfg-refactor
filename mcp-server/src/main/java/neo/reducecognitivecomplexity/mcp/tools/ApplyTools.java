@@ -1,4 +1,7 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.tools;
+
+import neo.reducecognitivecomplexity.mcp.model.ApplyResult;
+import neo.reducecognitivecomplexity.mcp.service.DockerApplyService;
 
 import java.util.List;
 

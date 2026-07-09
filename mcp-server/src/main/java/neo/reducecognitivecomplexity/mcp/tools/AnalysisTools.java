@@ -1,4 +1,7 @@
-package neo.reducecognitivecomplexity.mcp;
+package neo.reducecognitivecomplexity.mcp.tools;
+
+import neo.reducecognitivecomplexity.mcp.model.AnalysisResult;
+import neo.reducecognitivecomplexity.mcp.service.DockerAnalysisService;
 
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
