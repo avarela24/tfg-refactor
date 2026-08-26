@@ -13,8 +13,8 @@ flowchart TD
     C -->|tools MCP| D[mcp-server: Spring Boot]
     D -->|docker run| E[reduce-cc: Eclipse headless + JDT + CPLEX]
     E -->|CSV: complejidad y solución| D
-    D -->|snippets de código| C
-    C -->|nombres decididos| D
+    D -->|fragmentos de código| C
+    C -->|nombres métodos| D
     D -->|apply| E
     D -->|archivos modificados| B
     B -->|rama + commit + PR| A
@@ -24,9 +24,9 @@ flowchart TD
 
 | Carpeta | Qué es | Detalle |
 |---|---|---|
-| `plugin/`, `product/`, `target-platform/`, `docker/`, `cplex-linux/` | El motor: analiza complejidad cognitiva mediante programación lineal entera (ILP, con CPLEX) y aplica extracciones reales sobre el código, dentro de un contenedor con Eclipse. | [README-DOCKER.md](README-DOCKER.md) |
+| `plugin/`, `product/`, `target-platform/`, `docker/`, `cplex-linux/` | El motor: analiza complejidad cognitiva mediante programación lineal entera (ILP, con CPLEX) y aplica extracciones sobre el código, dentro de un contenedor con Eclipse. | [README-DOCKER.md](README-DOCKER.md) |
 | `mcp-server/` | Servidor MCP en Spring Boot. Expone `clone_project`, `prepare_project`, `analyze_project`, `apply_names`, `list_modified_files`, `get_file_content` a cualquier cliente/agente LLM. | [mcp-server/](mcp-server/) |
-| `github-bot/` | GitHub App (Probot) que dispara el pipeline ante cada `push` y abre la Pull Request con el resultado. | [github-bot/README.md](github-bot/README.md) |
+| `github-bot/` | GitHub App (Probot) que inicia el pipeline ante cada `push` y abre la Pull Request con el resultado. | [github-bot/README.md](github-bot/README.md) |
 
 n8n (no versionado en este repo, se ejecuta como contenedor aparte) aloja
 el agente LLM y hace de puente entre `github-bot` y `mcp-server`.
