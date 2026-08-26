@@ -36,9 +36,12 @@ java -jar "$LAUNCHER_JAR" -nosplash -consoleLog -data "$WORKSPACE_DIR" -applicat
 
 if [ "${1:-}" = "apply" ]; then
   echo "== Aplicando extracción calculada (docker/apply-request.properties) =="
-  exec java -jar "$LAUNCHER_JAR" -nosplash -consoleLog -data "$WORKSPACE_DIR" \
+  java -jar "$LAUNCHER_JAR" -nosplash -consoleLog -data "$WORKSPACE_DIR" \
     -DapplyRequest="${APPLY_REQUEST_FILE:-/workspace/apply-request.properties}" \
     -application ReduceCognitiveComplexity.applyCodeExtractions
+  EXIT_CODE=$?
+  kill "$XVFB_PID" 2>/dev/null || true
+  exit $EXIT_CODE
 fi
 
 echo "== Paso 2/2: análisis de complejidad cognitiva =="

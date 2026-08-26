@@ -13,12 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /** Consulta qué archivos ha modificado apply_names, usando git dentro del propio clon. */
 @Service
 public class DockerGitService {
+
+	@Autowired
+	private ReduceCcLock reduceCcLock;
 
 	@Value("${reducecc.workspace-dir}")
 	private String workspaceDir;
@@ -33,20 +37,31 @@ public class DockerGitService {
 				"alpine/git",
 				"status", "--porcelain");
 
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectErrorStream(true);
-		Process process = pb.start();
-
 		List<String> modified = new ArrayList<>();
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.length() > 3 && line.charAt(1) == 'M') {
-					modified.add(line.substring(3).trim());
+
+		reduceCcLock.lock();
+		try {
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.redirectErrorStream(true);
+			Process process = pb.start();
+
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (line.length() > 3) {
+						modified.add(line.substring(3).trim());
+					}
 				}
 			}
+
+			boolean finished = process.waitFor(1, TimeUnit.MINUTES);
+			if (!finished) {
+				process.destroyForcibly();
+				throw new IllegalStateException("git status no terminó a tiempo.");
+			}
+		} finally {
+			reduceCcLock.unlock();
 		}
-		process.waitFor(1, TimeUnit.MINUTES);
 
 		ModifiedFilesResult result = new ModifiedFilesResult();
 		result.modifiedFiles = modified;

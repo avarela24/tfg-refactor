@@ -10,7 +10,10 @@ spring:
 server:
   port: 8081
 
+# workspace-dir y output-dir deben ser rutas absolutas del sistema anfitrión (no del contenedor).
 reducecc:
-  workspace-dir: C:/Users/Usuario/Documents/tfg-refactor/workspace
-  output-dir: C:/Users/Usuario/Documents/tfg-refactor/output
+  workspace-dir: ${REDUCECC_WORKSPACE_DIR:C:/Users/Usuario/Documents/tfg-refactor/workspace}
+  output-dir: ${REDUCECC_OUTPUT_DIR:C:/Users/Usuario/Documents/tfg-refactor/output}
   docker-image: reduce-cc
+  analysis-callback-url-bot: ${REDUCECC_ANALYSIS_CALLBACK_URL_BOT:http://127.0.0.1:5678/webhook/analysis-done}
+  analysis-callback-url-chat: ${REDUCECC_ANALYSIS_CALLBACK_URL_CHAT:http://127.0.0.1:5678/webhook/analysis-done-chat}

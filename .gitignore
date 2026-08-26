@@ -8,3 +8,8 @@ output/
 # Artefactos de compilación de Tycho/Maven
 **/target/
 *.log
+
+# Configuración local de IDE
+.vscode/
+.idea/
+*.iml

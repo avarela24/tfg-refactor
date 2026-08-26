@@ -124,12 +124,14 @@ public class Solution {
         this.compilationUnit = compilationUnit;
 
         // Pattern to match arrays of numbers: "[123 456]"
+        //Pattern p = Pattern.compile("\\[([0-9\\s]+)\\]");
         Pattern p = Pattern.compile("\\[([0-9,\\s]+)\\]");
         Matcher m = p.matcher(solutionString);
 
         while (m.find()) {
             // content inside brackets: "123, 456, 789" (Sequence.toString() usa comas)
-            String value = m.group(1); 
+            String value = m.group(1);
+            //String[] offsets = value.split("\\s+");
             String[] offsets = value.split("[,\\s]+");
 
             List<ASTNode> nodes = new ArrayList<>();
@@ -394,6 +396,7 @@ public class Solution {
         void execute(int extractionIndex, CompilationUnit cu) throws IOException, CoreException;
     }
 
+
     /**
      * Applies the list of extract method refactoring operations associated to this solution.
      *
@@ -406,14 +409,14 @@ public class Solution {
     }
 
     /**
-     * Igual que {@link #applyExtractMethodsRefactoring(boolean)}, pero acepta
+     * Igual que applyExtractMethodsRefactoring, pero acepta
      * nombres personalizados para los métodos extraídos.
      *
-     * @param customNames nombres en el mismo orden en que se presentan las
+     * @param customNames nombres en el mismo orden en que aparecen las
      *                     extracciones (Extraction 1, Extraction 2, ...).
-     *                     {@code null} o vacío mantiene el comportamiento
-     *                     autogenerado de siempre. Un hueco en blanco en una
-     *                     posición concreta también cae al nombre
+     *                     Si se pone null o vacío se mantiene el nombre
+     *                     autogenerado. Si se deja un hueco en blanco
+     *                     en una posición se usará el nombre
      *                     autogenerado solo para esa extracción.
      */
     public boolean applyExtractMethodsRefactoring(boolean printDebuggingInformation, List<String> customNames) throws CoreException {
@@ -553,7 +556,7 @@ public class Solution {
                 }
             }
 
-            // Generate Method Name (nombre del LLM si se ha suministrado; autogenerado si no)
+            // Generate Method Name (nombre del LLM si se ha suministrado, autogenerado si no)
             int extractionNumber = rangesForExtractions.size() - indexOfExtraction;
             String customName = (customNames != null && customNames.size() >= extractionNumber)
                     ? customNames.get(extractionNumber - 1)

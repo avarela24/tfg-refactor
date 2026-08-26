@@ -8,20 +8,20 @@ ver el `README.md` de la raíz del repositorio.
 
 ```
 .
-├── pom.xml                    Reactor Tycho (raíz)
+├── pom.xml Reactor Tycho (raíz)
 ├── target-platform/
-│   └── reduce-cc.target       Plataforma de compilación (linux/gtk/x86_64)
+│ └── reduce-cc.target Plataforma de compilación (linux/gtk/x86_64)
 ├── plugin/
-│   ├── ReduceCognitiveComplexity/ Herramienta original + ApplyCodeExtractions
-│   └── WorkspaceImporter/     Registra proyectos en el workspace
-├── product/                   Ensambla el producto Eclipse headless ejecutable
+│ ├── ReduceCognitiveComplexity/ Herramienta original + ApplyCodeExtractions
+│ └── WorkspaceImporter/ Registra proyectos en el workspace
+├── product/ Ensambla el producto Eclipse headless ejecutable
 ├── docker/
-│   ├── Dockerfile             Build multi-stage (Tycho + CPLEX -> runtime)
-│   ├── entrypoint.sh          Orquesta los pasos (importar / analizar / apply)
-│   └── config.properties      Config del analizador dentro del contenedor
+│ ├── Dockerfile Build multi-stage (Tycho + CPLEX -> runtime)
+│ ├── entrypoint.sh Orquesta los pasos (importar / analizar / apply)
+│ └── config.properties Config del analizador dentro del contenedor
 └── cplex-linux/
-    ├── cplex-installer.bin    Instalador CPLEX para Linux (no va al repo)
-    └── install.properties     Config de instalación silenciosa
+├── cplex-installer.bin Instalador CPLEX para Linux (no va al repo)
+└── install.properties Config de instalación silenciosa
 ```
 
 ## 2. Qué hace falta para construir la imagen
@@ -42,14 +42,13 @@ docker build -f docker/Dockerfile -t reduce-cc .
 docker run --rm `
   -v "${PWD}\workspace:/workspace" `
   -v "${PWD}\output:/config/output" `
-  reduce-cc <NombreProyecto> <ES-LSF|ES-SSF|ILP> <true|false>
+  reduce-cc <NombreProyecto> ILP <true|false>
 ```
 
 - `<NombreProyecto>`: debe coincidir exactamente (mayúsculas incluidas)
   con el `<name>` del `.project` del proyecto, que debe estar ya en
   `workspace\<NombreProyecto>\` con su `.project`/`.classpath`.
-- Solver: `ILP` (requiere CPLEX, es el que da mejores resultados),
-  `ES-LSF`/`ES-SSF` (heurísticos — **ver aviso importante más abajo**).
+- Solver: `ILP` (requiere CPLEX) es el que se usa en este proyecto.
 - El tercer argumento (`generateGraphs`) es del programa original.
 
 Smoke test rápido: coloca cualquier proyecto Java con `.project`/`.classpath`
@@ -72,22 +71,7 @@ docker run --rm -v "${PWD}\workspace:/workspace" -v "${PWD}\output:/config/outpu
 En la práctica, esto lo invoca el servidor MCP (tool `apply_names`), no
 se suele ejecutar a mano.
 
-## 4. Aviso importante: bug conocido en los solvers heurísticos
-
-`ES-LSF` y `ES-SSF` devuelven sistemáticamente una solución vacía en
-métodos con más de un bloque extraíble, aunque existan candidatos
-factibles con reducción de complejidad real (confirmado con evidencia,
-no es una sospecha). El fallo está aislado al mecanismo de generación de
-combinaciones del propio proyecto original (`ExhaustiveEnumeration` +
-`IteratorYield`, que simula `yield return` con hilos y usa `Thread.stop()`,
-obsoleto en JDKs modernos) — no es nada de este Dockerfile ni de nuestra
-integración. Detalle completo, con pasos de reproducción, en el informe
-preparado para el autor original (pedidlo si no lo tenéis a mano).
-
-**Usad `ILP` mientras este bug no se arregle.** Con CPLEX instalado
-(sección 2), `ILP` funciona correctamente y encuentra soluciones óptimas.
-
-## 5. Decisiones de diseño que conviene recordar
+## 4. Decisiones de diseño que conviene recordar
 
 - **Java 25 en el runtime** (`eclipse-temurin:25-jdk-jammy`, JDK completo,
   no JRE): hace falta un JDK real porque JDT necesita `ct.sym` para
@@ -111,7 +95,7 @@ preparado para el autor original (pedidlo si no lo tenéis a mano).
   caso de estudio (como GildedRose) se colocan ahí en tiempo de uso, no
   viven dentro de este repositorio.
 
-## 6. Qué queda fuera de esta pieza (ver README.md raíz)
+## 5. Qué queda fuera de esta pieza (ver README.md raíz)
 
 Esto (`reduce-cc`) es deliberadamente solo el motor de análisis/aplicación.
 Todo lo demás vive en otros módulos del repositorio:
@@ -123,6 +107,6 @@ Todo lo demás vive en otros módulos del repositorio:
   contenedor y exponerlo como tools: `mcp-server/`.
 - Disparo automático ante un push de GitHub y apertura de PR: `github-bot/`.
 
-Pendiente real, todavía sin resolver: el bug de los solvers heurísticos
-(sección 4) y el soporte de Gradle en la generación de `.classpath`
-(`mcp-server`, de momento solo detecta Gradle y avisa, no lo resuelve).
+Pendiente real, todavía sin resolver: el soporte de Gradle en la
+generación de `.classpath` (`mcp-server`, de momento solo detecta Gradle
+y avisa, no lo resuelve).

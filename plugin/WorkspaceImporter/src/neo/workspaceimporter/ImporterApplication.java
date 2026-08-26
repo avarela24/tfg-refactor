@@ -7,6 +7,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
@@ -53,25 +54,36 @@ public class ImporterApplication implements IApplication {
 				continue;
 			}
 
-			// Carga el .project real (nombre, naturaleza, builders) y lo usa
-			// para dar de alta el proyecto en el registro del workspace.
-			IPath dotProjectPath = new Path(dotProject.getAbsolutePath());
-			IProjectDescription description = workspace.loadProjectDescription(dotProjectPath);
-			IProject project = workspace.getRoot().getProject(description.getName());
-
-			if (project.exists()) {
-				// Ya registrado en una ejecución anterior sobre el mismo
-				// workspace; no hay nada que hacer.
-				LOGGER.info("Already registered, skipping: " + description.getName());
-				continue;
+			// Un proyecto con problemas (.project corrupto, etc.) no debe
+			// impedir que se registren los demás — se salta y se sigue.
+			try {
+				importProject(workspace, dotProject);
+			} catch (CoreException e) {
+				LOGGER.severe("No se pudo importar el proyecto en " + candidate.getName() + ": " + e.getMessage());
 			}
-
-			project.create(description, new NullProgressMonitor());
-			project.open(new NullProgressMonitor());
-			LOGGER.info("Imported project: " + description.getName());
 		}
 
 		return IApplication.EXIT_OK;
+	}
+
+	/** Registra un único proyecto en el workspace, a partir de su .project. */
+	private void importProject(IWorkspace workspace, File dotProject) throws CoreException {
+		// Carga el .project real (nombre, naturaleza, builders) y lo usa
+		// para dar de alta el proyecto en el registro del workspace.
+		IPath dotProjectPath = new Path(dotProject.getAbsolutePath());
+		IProjectDescription description = workspace.loadProjectDescription(dotProjectPath);
+		IProject project = workspace.getRoot().getProject(description.getName());
+
+		if (project.exists()) {
+			// Ya registrado en una ejecución anterior sobre el mismo
+			// workspace; no hay nada que hacer.
+			LOGGER.info("Already registered, skipping: " + description.getName());
+			return;
+		}
+
+		project.create(description, new NullProgressMonitor());
+		project.open(new NullProgressMonitor());
+		LOGGER.info("Imported project: " + description.getName());
 	}
 
 	@Override

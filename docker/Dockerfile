@@ -46,9 +46,9 @@ RUN mkdir -p /opt/product && \
 # ---------- STAGE 2: minimal runtime ----------
 FROM eclipse-temurin:25-jdk-jammy
 
-# xvfb como red de seguridad: el plugin depende de org.eclipse.ui/SWT aunque
-# se ejecute headless. Si tras probarlo confirmáis que ningún código toca un
-# Display real, se puede quitar y lanzar `java` directamente.
+# Xvfb es necesario, no opcional: el plugin original inicializa un
+# Device/Color de SWT al arrancar (confirmado en Utils.initializeEnvironment()),
+# así que sin un display X real o virtual falla con SWTError.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       xvfb libgtk-3-0 libxtst6 libxrender1 libxi6 && \
     rm -rf /var/lib/apt/lists/*

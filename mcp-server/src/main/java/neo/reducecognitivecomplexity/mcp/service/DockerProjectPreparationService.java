@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,30 +29,38 @@ public class DockerProjectPreparationService {
 
 	private static final String MAVEN_CACHE_VOLUME = "mcp-maven-cache";
 
+	@Autowired
+	private ReduceCcLock reduceCcLock;
+
 	@Value("${reducecc.workspace-dir}")
 	private String workspaceDir;
 
 	public PrepareResult prepareProject(String projectName) throws Exception {
-		Path projectDir = Paths.get(workspaceDir, projectName);
+		reduceCcLock.lock();
+		try {
+			Path projectDir = Paths.get(workspaceDir, projectName);
 
-		if (!Files.isDirectory(projectDir)) {
-			return PrepareResult.error("No existe la carpeta " + projectDir + " en el workspace.");
-		}
+			if (!Files.isDirectory(projectDir)) {
+				return PrepareResult.error("No existe la carpeta " + projectDir + " en el workspace.");
+			}
 
-		if (Files.exists(projectDir.resolve(".project"))) {
-			return PrepareResult.skipped("El proyecto ya tiene .project/.classpath; no se ha tocado nada.");
-		}
+			if (Files.exists(projectDir.resolve(".project"))) {
+				return PrepareResult.skipped("El proyecto ya tiene .project/.classpath; no se ha tocado nada.");
+			}
 
-		Path pomXml = projectDir.resolve("pom.xml");
-		Path buildGradle = projectDir.resolve("build.gradle");
-		Path buildGradleKts = projectDir.resolve("build.gradle.kts");
+			Path pomXml = projectDir.resolve("pom.xml");
+			Path buildGradle = projectDir.resolve("build.gradle");
+			Path buildGradleKts = projectDir.resolve("build.gradle.kts");
 
-		if (Files.exists(pomXml)) {
-			return prepareMavenProject(projectName, projectDir, pomXml);
-		} else if (Files.exists(buildGradle) || Files.exists(buildGradleKts)) {
-			return PrepareResult.error("Proyecto Gradle detectado; la generación automática para Gradle todavía no está implementada.");
-		} else {
-			return preparePlainJavaProject(projectName, projectDir);
+			if (Files.exists(pomXml)) {
+				return prepareMavenProject(projectName, projectDir, pomXml);
+			} else if (Files.exists(buildGradle) || Files.exists(buildGradleKts)) {
+				return PrepareResult.error("Proyecto Gradle detectado; la generación automática para Gradle todavía no está implementada.");
+			} else {
+				return preparePlainJavaProject(projectName, projectDir);
+			}
+		} finally {
+			reduceCcLock.unlock();
 		}
 	}
 
@@ -140,11 +149,17 @@ public class DockerProjectPreparationService {
 					"<" + Pattern.quote(property) + ">\\s*([\\w.]+)\\s*</" + Pattern.quote(property) + ">")
 					.matcher(pomContent);
 			if (m.find()) {
-				String version = m.group(1).trim();
-				return version.startsWith("1.") ? version : version.replaceFirst("^1\\.", "");
+				return normalizeJavaVersion(m.group(1).trim());
 			}
 		}
 		return "21";
+	}
+
+	private String normalizeJavaVersion(String version) {
+		if (version.equals("8") || version.equals("1.8")) {
+			return "1.8";
+		}
+		return version;
 	}
 
 	private void writeDotProject(Path projectDir, String projectName) throws Exception {

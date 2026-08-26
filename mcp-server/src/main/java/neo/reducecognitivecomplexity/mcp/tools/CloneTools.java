@@ -16,13 +16,14 @@ public class CloneTools {
 		this.cloneService = cloneService;
 	}
 
-	@McpTool(name = "clone_project", description = "Clona un repositorio Git en el workspace local, sin tocar el remoto. Usa forceClean=true para volver a clonar desde cero si ya existe (útil para ejecuciones automáticas repetidas).")
+	@McpTool(name = "clone_project", description = "Clona un repositorio Git en el workspace local, sin tocar el remoto. Con forceClean=true, empieza de cero si ya existe. Con commit, se sitúa en ese commit exacto (necesario para reproducir un estado histórico concreto); sin él, clona el último commit de la rama indicada.")
 	public CloneResult cloneProject(
 			@McpToolParam(description = "URL del repositorio", required = true) String gitUrl,
 			@McpToolParam(description = "Nombre de carpeta a usar en el workspace", required = false) String projectName,
-			@McpToolParam(description = "Rama a clonar", required = false) String branch,
+			@McpToolParam(description = "Rama a clonar (ignorado si se indica commit)", required = false) String branch,
+			@McpToolParam(description = "Hash de commit exacto en el que situarse", required = false) String commit,
 			@McpToolParam(description = "Si true, borra la carpeta existente y clona de nuevo desde cero", required = false) Boolean forceClean)
 			throws Exception {
-		return cloneService.cloneProject(gitUrl, projectName, branch, forceClean != null && forceClean);
+		return cloneService.cloneProject(gitUrl, projectName, branch, commit, forceClean != null && forceClean);
 	}
 }
