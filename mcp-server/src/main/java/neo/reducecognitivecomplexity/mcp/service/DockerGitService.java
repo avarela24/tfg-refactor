@@ -1,25 +1,43 @@
 package neo.reducecognitivecomplexity.mcp.service;
 
-import neo.reducecognitivecomplexity.mcp.model.FileContentResult;
-import neo.reducecognitivecomplexity.mcp.model.ModifiedFilesResult;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** Consulta qué archivos ha modificado apply_names, usando git dentro del propio clon. */
+/**
+ * Reúne los archivos modificados tras aplicar una o más extracciones y
+ * le entrega el resultado directamente al bot de GitHub — el LLM no
+ * genera ningún JSON como texto, y n8n no interviene en este paso: este
+ * servicio construye el cuerpo de la petición él mismo, con datos
+ * leídos directamente del disco, y llama por su cuenta a
+ * /tfg-bot/pr-ready (mismo mecanismo, y mismo motivo para forzar
+ * HTTP/1.1, que ya usa DockerAnalysisService.notify()).
+ */
 @Service
 public class DockerGitService {
+
+	private static final Logger LOGGER = Logger.getLogger(DockerGitService.class.getName());
 
 	@Autowired
 	private ReduceCcLock reduceCcLock;
@@ -27,7 +45,67 @@ public class DockerGitService {
 	@Value("${reducecc.workspace-dir}")
 	private String workspaceDir;
 
-	public ModifiedFilesResult listModifiedFiles(String projectName) throws Exception {
+	@Value("${reducecc.pr-bot-url:http://127.0.0.1:3000/tfg-bot/pr-ready}")
+	private String prBotUrl;
+
+	/** Reúne los archivos modificados y le pide al bot que abra la Pull Request. */
+	public String createPullRequest(String projectName, String owner, String repo, String baseBranch) throws Exception {
+		List<String> modifiedPaths = listModifiedFiles(projectName);
+
+		if (modifiedPaths.isEmpty()) {
+			return "No hay ningún archivo modificado — no se ha abierto ninguna Pull Request.";
+		}
+
+		List<Map<String, String>> files = new ArrayList<>();
+		for (String path : modifiedPaths) {
+			String content = readFileContent(projectName, path);
+			if (content == null) {
+				LOGGER.warning("No se pudo leer " + path + " para la PR; se omite.");
+				continue;
+			}
+			Map<String, String> file = new HashMap<>();
+			file.put("path", path);
+			file.put("content", content);
+			files.add(file);
+		}
+
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("owner", owner);
+		payload.put("repo", repo);
+		payload.put("baseBranch", baseBranch);
+		payload.put("files", files);
+
+		return sendToBot(payload);
+	}
+
+	private String sendToBot(Map<String, Object> payload) throws Exception {
+		String json = new ObjectMapper().writeValueAsString(payload);
+
+		HttpClient client = HttpClient.newBuilder()
+				.version(HttpClient.Version.HTTP_1_1)
+				.connectTimeout(Duration.ofSeconds(10))
+				.build();
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(prBotUrl))
+				.timeout(Duration.ofMinutes(2))
+				.header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+				.build();
+
+		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		JsonNode result = new ObjectMapper().readTree(response.body());
+
+		if (result.path("success").asBoolean(false)) {
+			String prUrl = result.path("prUrl").asText(null);
+			return prUrl != null
+					? "Pull Request abierta correctamente: " + prUrl
+					: "Solicitud procesada correctamente (sin archivos que subir).";
+		} else {
+			return "No se pudo abrir la Pull Request: " + result.path("error").asText("motivo desconocido");
+		}
+	}
+
+	private List<String> listModifiedFiles(String projectName) throws Exception {
 		Path projectDir = Paths.get(workspaceDir, projectName);
 
 		List<String> command = List.of(
@@ -63,22 +141,15 @@ public class DockerGitService {
 			reduceCcLock.unlock();
 		}
 
-		ModifiedFilesResult result = new ModifiedFilesResult();
-		result.modifiedFiles = modified;
-		return result;
+		return modified;
 	}
 
-	public FileContentResult getFileContent(String projectName, String relativePath) throws Exception {
-		Path file = Paths.get(workspaceDir, projectName, relativePath);
-		FileContentResult result = new FileContentResult();
-		result.relativePath = relativePath;
-		if (!Files.exists(file)) {
-			result.success = false;
-			result.message = "No existe: " + file;
-			return result;
+	private String readFileContent(String projectName, String relativePath) {
+		try {
+			Path file = Paths.get(workspaceDir, projectName, relativePath);
+			return Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : null;
+		} catch (Exception e) {
+			return null;
 		}
-		result.success = true;
-		result.content = Files.readString(file, StandardCharsets.UTF_8);
-		return result;
 	}
 }

@@ -12,10 +12,11 @@
     "probot-app"
   ],
   "scripts": {
-    "start": "probot run ./index.js",
-    "test": "node --test"
+    "start": "node index.js"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "probot": "^14.3.2"
   },
   "devDependencies": {

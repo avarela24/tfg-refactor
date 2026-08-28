@@ -17,3 +17,4 @@ reducecc:
   docker-image: reduce-cc
   analysis-callback-url-bot: ${REDUCECC_ANALYSIS_CALLBACK_URL_BOT:http://127.0.0.1:5678/webhook/analysis-done}
   analysis-callback-url-chat: ${REDUCECC_ANALYSIS_CALLBACK_URL_CHAT:http://127.0.0.1:5678/webhook/analysis-done-chat}
+  pr-bot-url: ${REDUCECC_PR_BOT_URL:http://127.0.0.1:3000/tfg-bot/pr-ready}
