@@ -1,5 +1,6 @@
 package neo.reducecognitivecomplexity.core.jdt;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -312,33 +313,25 @@ public class Utils {
 	                        boolean compilationErrors = builtWithCompilationErrors(astAfter);
 
 	                        if (compilationErrors) {
-	                            resultOfRefactoring = "Compilation unit does not compile after method extraction.";
+	                            resultOfRefactoring = "Compilation unit does not compile after method extraction "
+                                    + getCompilationUnitProblems(astAfter);
 	                            feasible = false;
 	                        } else {
 	                            changes.add(c);
 	                            // undoChanges remains empty because nothing was actually applied
 	                        }
 	                    }
-	                } else {
-	                    // =================================================================
-	                    // ACTUAL WORKSPACE MODIFICATION (Final Refactoring Application)
-	                    // =================================================================
-	                    Change undo = c.perform(npm);
-	                    
-	                    // Verify compilation after change on the real working copy
-	                    CompilationUnit astAfter = parse(workingCopy);
-	                    boolean compilationErrors = builtWithCompilationErrors(astAfter);
+	            	} else {
+						// =================================================================
+						// ACTUAL WORKSPACE MODIFICATION (Final Refactoring Application)
+						// =================================================================
+						Change undo = c.perform(npm);
+						workingCopy.reconcile(ICompilationUnit.NO_AST, true, null, npm);
 
-	                    if (compilationErrors) {
-	                        resultOfRefactoring = "Compilation unit does not compile after method extraction.";
-	                        feasible = false;
-	                        undo.perform(npm); // Revert the real change
-	                    } else {
-	                        changes.add(c);
-	                        undoChanges.add(undo);
-	                        refactoringApplied = true;
-	                    }
-	                }
+						changes.add(c);
+						undoChanges.add(undo);
+						refactoringApplied = true;
+					}
 	            } else {
 	                feasible = false;
 	                resultOfRefactoring = status.getEntryWithHighestSeverity().getMessage();

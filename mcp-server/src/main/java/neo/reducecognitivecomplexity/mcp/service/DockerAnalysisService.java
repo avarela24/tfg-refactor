@@ -76,33 +76,30 @@ public class DockerAnalysisService {
 
 	private final ExecutorService analysisExecutor = Executors.newCachedThreadPool();
 
-	/** Modo conversacional: lanza el análisis y avisa a analysis-done-chat al terminar. */
-	public String startAnalysisChat(String projectName, String solver) {
-		LOGGER.info("start_analysis_chat recibida: projectName=" + projectName + " solver=" + solver);
-		analysisExecutor.submit(() -> {
-			try {
-				AnalysisResult result = runAnalysis(projectName, solver);
-				notify(chatCallbackUrl, chatPayload(projectName, "done", result, null));
-			} catch (Throwable t) {
-				LOGGER.log(Level.SEVERE, "Fallo analizando " + projectName, t);
-				notify(chatCallbackUrl, chatPayload(projectName, "failed", null, String.valueOf(t.getMessage())));
-			}
-		});
-		return "Análisis de " + projectName + " iniciado en segundo plano.";
-	}
+	/** Lanza el análisis en segundo plano; avisa a un webhook u otro según isBotMode. */
+	public String startAnalysis(String projectName, String solver, boolean isBotMode,
+			String owner, String repo, String baseBranch) {
+		LOGGER.info("start_analysis recibida: projectName=" + projectName + " solver=" + solver
+				+ " isBotMode=" + isBotMode);
 
-	/** Modo bot: lanza el análisis y avisa a analysis-done (con owner/repo/baseBranch) al terminar. */
-	public String startAnalysisBot(String projectName, String solver, String owner, String repo, String baseBranch) {
-		LOGGER.info("start_analysis_bot recibida: projectName=" + projectName + " owner=" + owner + " repo=" + repo);
 		analysisExecutor.submit(() -> {
 			try {
 				AnalysisResult result = runAnalysis(projectName, solver);
-				notify(botCallbackUrl, botPayload(projectName, owner, repo, baseBranch, "done", result, null));
+				if (isBotMode) {
+					notify(botCallbackUrl, botPayload(projectName, owner, repo, baseBranch, "done", result, null));
+				} else {
+					notify(chatCallbackUrl, chatPayload(projectName, "done", result, null));
+				}
 			} catch (Throwable t) {
 				LOGGER.log(Level.SEVERE, "Fallo analizando " + projectName, t);
-				notify(botCallbackUrl, botPayload(projectName, owner, repo, baseBranch, "failed", null, String.valueOf(t.getMessage())));
+				if (isBotMode) {
+					notify(botCallbackUrl, botPayload(projectName, owner, repo, baseBranch, "failed", null, String.valueOf(t.getMessage())));
+				} else {
+					notify(chatCallbackUrl, chatPayload(projectName, "failed", null, String.valueOf(t.getMessage())));
+				}
 			}
 		});
+
 		return "Análisis de " + projectName + " iniciado en segundo plano.";
 	}
 

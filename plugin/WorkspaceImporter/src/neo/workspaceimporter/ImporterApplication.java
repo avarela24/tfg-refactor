@@ -58,7 +58,7 @@ public class ImporterApplication implements IApplication {
 			// impedir que se registren los demás — se salta y se sigue.
 			try {
 				importProject(workspace, dotProject);
-			} catch (CoreException e) {
+			} catch (CoreException | RuntimeException e) {
 				LOGGER.severe("No se pudo importar el proyecto en " + candidate.getName() + ": " + e.getMessage());
 			}
 		}

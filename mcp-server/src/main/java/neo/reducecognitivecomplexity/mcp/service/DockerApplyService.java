@@ -31,14 +31,13 @@ public class DockerApplyService {
 	@Value("${reducecc.docker-image:reduce-cc}")
 	private String dockerImage;
 
-	public ApplyResult applyNames(String projectName, String relativePath, int complexity,
-			String solution, List<String> names) throws Exception {
+	public ApplyResult applyNames(String projectName, String relativePath, String solution,
+			List<String> names) throws Exception {
 
 		String namesLine = (names == null || names.isEmpty()) ? "" : String.join(",", names);
 
 		String requestContent = "project=" + projectName + "\n"
 				+ "relativePath=" + relativePath + "\n"
-				+ "complexity=" + complexity + "\n"
 				+ "solution=" + solution + "\n"
 				+ "names=" + namesLine + "\n";
 

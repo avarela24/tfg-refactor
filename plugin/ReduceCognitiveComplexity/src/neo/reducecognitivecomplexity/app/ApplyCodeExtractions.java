@@ -25,7 +25,6 @@ import neo.reducecognitivecomplexity.core.eclipse.Utils;
  * -DapplyRequest=...), con:
  *   project=NombreDelProyecto
  *   relativePath=src/.../Clase.java   (relativo a la raíz del proyecto)
- *   complexity=17                     (complejidad cognitiva del método)
  *   solution=[[393]]                  (columna "solution" del CSV)
  *   names=nombre1,nombre2             (nombres de los métodos, opcional)
  */
@@ -55,20 +54,11 @@ public class ApplyCodeExtractions implements IApplication {
 		// Extraer y validar las propiedades de la petición
 		String project = props.getProperty("project");
 		String relativePath = props.getProperty("relativePath");
-		String complexityStr = props.getProperty("complexity");
 		String solutionString = props.getProperty("solution");
 
-		if (project == null || relativePath == null || solutionString == null || complexityStr == null) {
-			LOGGER.severe("Faltan propiedades obligatorias (project, relativePath, complexity, solution) en "
+		if (project == null || relativePath == null || solutionString == null) {
+			LOGGER.severe("Faltan propiedades obligatorias (project, relativePath, solution) en "
 					+ requestPath);
-			return -1;
-		}
-
-		int complexity;
-		try {
-			complexity = Integer.parseInt(complexityStr);
-		} catch (NumberFormatException e) {
-			LOGGER.severe("El valor de 'complexity' no es un número válido: " + complexityStr);
 			return -1;
 		}
 
@@ -83,8 +73,7 @@ public class ApplyCodeExtractions implements IApplication {
 
 		// Asegurar que el proyecto está registrado, abierto y compilado.
 		// getProject() devuelve null (sin lanzar excepción) si el proyecto
-		// no existe en el workspace, así que hay que comprobarlo aquí y no
-		// dejar que el fallo aparezca más adelante con un mensaje confuso.
+		// no existe en el workspace.
 		if (Utils.getProject(project) == null) {
 			LOGGER.severe("El proyecto '" + project + "' no existe en el workspace (¿se registró con WorkspaceImporter?).");
 			return -1;
@@ -103,9 +92,10 @@ public class ApplyCodeExtractions implements IApplication {
 			return -1;
 		}
 
-		// Reconstruir la solución sobre ese archivo y comprobar que de
-		// verdad contiene algo que extraer
-		Solution solution = new Solution(cu, solutionString, complexity);
+		// Reconstruir la solución sobre ese archivo y comprobar que de verdad contiene algo que extraer
+		// El constructor exige un int de complejidad inicial, pero ese valor solo lo
+		// usa Solution.evaluate(). Se pasa un valor fijo sin que afecte al resultado.
+		Solution solution = new Solution(cu, solutionString, 0);
 
 		if (solution.getSequenceList() == null || solution.getSequenceList().isEmpty()) {
 			LOGGER.severe("La solución no contiene ninguna secuencia válida tras resolverla contra el archivo "

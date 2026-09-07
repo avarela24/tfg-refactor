@@ -18,14 +18,21 @@ public class ApplyTools {
 		this.dockerApplyService = dockerApplyService;
 	}
 
-	@McpTool(name = "apply_names", description = "Aplica de verdad, sobre el archivo real del proyecto, la extracción de método calculada por analyze_project, usando los nombres indicados para cada método extraído en vez de los autogenerados.")
+	@McpTool(
+  		name = "apply_names",
+  		description = "Aplica sobre el archivo real del proyecto la extraccion de metodo calculada por start_analysis, usando los "
+    		+ "nombres indicados para cada metodo extraido."
+	)
 	public ApplyResult applyNames(
-			@McpToolParam(description = "Nombre del proyecto", required = true) String projectName,
-			@McpToolParam(description = "Ruta del archivo .java relativa a la raíz del proyecto", required = true) String relativePath,
-			@McpToolParam(description = "Complejidad cognitiva conocida del método", required = true) int complexity,
-			@McpToolParam(description = "Cadena 'solution' tal como la devolvió analyze_project (p.ej. [[393]])", required = true) String solution,
-			@McpToolParam(description = "Nombre para cada extracción, en el mismo orden en que aparecen", required = true) List<String> names)
-			throws Exception {
-		return dockerApplyService.applyNames(projectName, relativePath, complexity, solution, names);
+		@McpToolParam(description = "Nombre del proyecto", required = true)
+		String projectName,
+		@McpToolParam(description = "Ruta del archivo .java relativa a la raiz del proyecto", required = true)
+		String relativePath,
+		@McpToolParam(description = "Cadena 'solution' tal como llego en el resultado del analisis", required = true)
+		String solution,
+		@McpToolParam(description = "Nombre para cada extraccion, en el mismo orden en que aparecen", required = true)
+		List<String> names
+	) throws Exception {
+		return dockerApplyService.applyNames(projectName, relativePath, solution, names);
 	}
 }

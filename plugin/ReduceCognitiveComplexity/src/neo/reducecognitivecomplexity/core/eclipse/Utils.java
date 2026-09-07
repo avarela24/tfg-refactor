@@ -3,6 +3,7 @@ package neo.reducecognitivecomplexity.core.eclipse;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -219,7 +220,8 @@ public class Utils {
 			} catch (Throwable t) {
 				// We catch Throwable because headless M2E UI marker generation throws NoClassDefFoundError.
 				// This is harmless for AST parsing, so we simply log and ignore it.
-				LOGGER.warning("Ignored build error (common in headless Maven projects): " + t.getMessage());
+				LOGGER.log(Level.WARNING, "Build error para el proyecto " + projectName
+            		+ " (verificar si es realmente inofensivo):", t);
 			}
 			
 			waitForBuild();
