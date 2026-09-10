@@ -15,6 +15,7 @@ reducecc:
   workspace-dir: ${REDUCECC_WORKSPACE_DIR:C:/Users/Usuario/Documents/tfg-refactor/workspace}
   output-dir: ${REDUCECC_OUTPUT_DIR:C:/Users/Usuario/Documents/tfg-refactor/output}
   docker-image: reduce-cc
+  maven-cache-volume: ${REDUCECC_MAVEN_CACHE_VOLUME:mcp-maven-cache}
   analysis-callback-url-bot: ${REDUCECC_ANALYSIS_CALLBACK_URL_BOT:http://127.0.0.1:5678/webhook/analysis-done}
   analysis-callback-url-chat: ${REDUCECC_ANALYSIS_CALLBACK_URL_CHAT:http://127.0.0.1:5678/webhook/analysis-done-chat}
   pr-bot-url: ${REDUCECC_PR_BOT_URL:http://127.0.0.1:3000/tfg-bot/pr-ready}

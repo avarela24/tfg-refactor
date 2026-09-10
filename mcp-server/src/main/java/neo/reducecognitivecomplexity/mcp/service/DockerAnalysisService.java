@@ -2,6 +2,7 @@ package neo.reducecognitivecomplexity.mcp.service;
 
 import neo.reducecognitivecomplexity.mcp.model.AnalysisResult;
 import neo.reducecognitivecomplexity.mcp.model.ExtractionSnippet;
+import neo.reducecognitivecomplexity.mcp.model.FileAnalysis;
 import neo.reducecognitivecomplexity.mcp.model.MethodCandidate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +16,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -30,27 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Invoca el contenedor reduce-cc y convierte su salida de consola en un
- * resultado estructurado.
- * <p>
- * La salida del proceso se redirige directamente a un archivo temporal
- * (ProcessBuilder.redirectOutput), en vez de leerse línea a línea desde
- * Java con un hilo propio: es el patrón que recomienda el propio Javadoc
- * de ProcessBuilder para evitar bloqueos silenciosos al leer la salida
- * de un proceso externo, un problema conocido en Windows sobre todo
- * cuando el proceso hijo se comunica con otros procesos por debajo
- * (aquí, Docker Desktop/WSL2).
- * <p>
- * El análisis se lanza en un hilo de fondo y devuelve al instante — cuando
- * termina, sea con éxito o con error, este servicio avisa a n8n con una
- * llamada saliente a uno de dos webhooks distintos según el modo:
- * "analysis-done" (modo bot) o "analysis-done-chat" (modo conversacional).
- * Ninguna conexión HTTP se queda nunca abierta más que unos segundos —
- * evita así el límite de inactividad de la red de Docker Desktop/WSL2
- * (confirmado: corta conexiones sin tráfico a los 5-7 minutos), sin
- * importar cuánto tarde el análisis real.
- */
 @Service
 public class DockerAnalysisService {
 
@@ -76,7 +58,7 @@ public class DockerAnalysisService {
 
 	private final ExecutorService analysisExecutor = Executors.newCachedThreadPool();
 
-	/** Lanza el análisis en segundo plano; avisa a un webhook u otro según isBotMode. */
+	// Lanza el análisis en segundo plano y avisa a un webhook u otro según isBotMode.
 	public String startAnalysis(String projectName, String solver, boolean isBotMode,
 			String owner, String repo, String baseBranch) {
 		LOGGER.info("start_analysis recibida: projectName=" + projectName + " solver=" + solver
@@ -143,7 +125,7 @@ public class DockerAnalysisService {
 		}
 	}
 
-	/** El trabajo real: invoca reduce-cc y espera a que termine (puede tardar horas). */
+	// Invoca reduce-cc y espera a que termine.
 	private AnalysisResult runAnalysis(String projectName, String solver) throws Exception {
 		List<String> command = List.of(
 				"docker", "run", "--rm",
@@ -179,7 +161,7 @@ public class DockerAnalysisService {
 			String fullOutput = Files.readString(logFile, StandardCharsets.UTF_8);
 			LOGGER.info(">>> Proceso Docker terminado, exitCode=" + exitCode + ", " + fullOutput.length() + " caracteres de salida");
 
-			return parseOutput(projectName, solver, fullOutput);
+			return parseOutput(projectName, fullOutput);
 		} finally {
 			reduceCcLock.unlock();
 			if (logFile != null) {
@@ -192,9 +174,9 @@ public class DockerAnalysisService {
 		}
 	}
 
-	private AnalysisResult parseOutput(String projectName, String solver, String output) {
-		List<MethodCandidate> methods = new ArrayList<>();
-		Map<String, String> classCodeByFile = new HashMap<>();
+	private AnalysisResult parseOutput(String projectName, String output) {
+		Map<String, FileAnalysis> byFile = new LinkedHashMap<>();
+		Map<String, List<String>> rawSolutionsByFile = new LinkedHashMap<>();
 
 		Pattern methodHeader = Pattern.compile("Processing method: (\\S+) \\(CC: (\\d+)\\)");
 		Matcher headerMatcher = methodHeader.matcher(output);
@@ -216,8 +198,6 @@ public class DockerAnalysisService {
 			Matcher solutionMatcher = Pattern.compile("Refactoring operations:\\s*\\n(.*)").matcher(block);
 			String solution = solutionMatcher.find() ? solutionMatcher.group(1).trim() : null;
 
-			// Sin solución, no hay nada que el LLM pueda nombrar ni aplicar
-			// — se descarta aquí, antes de gastar nada en leer su clase.
 			if (solution == null || solution.equals("[]")) {
 				continue;
 			}
@@ -225,15 +205,6 @@ public class DockerAnalysisService {
 			MethodCandidate candidate = new MethodCandidate();
 			candidate.methodName = names.get(i);
 			candidate.complexity = complexities.get(i);
-			candidate.solution = solution;
-
-			Matcher pathMatcher = Pattern.compile(
-					"COMPILATION UNIT /" + Pattern.quote(projectName) + "/(.+)").matcher(block);
-			if (pathMatcher.find()) {
-				candidate.relativePath = pathMatcher.group(1).trim();
-				classCodeByFile.computeIfAbsent(candidate.relativePath,
-						path -> readClassCode(projectName, path));
-			}
 
 			Matcher extractionMatcher = Pattern
 					.compile("EXTRACTION (\\d+)\\s*\\n.*?CODE: \\[(.*?)\\]\\s*\\n", Pattern.DOTALL)
@@ -245,14 +216,36 @@ public class DockerAnalysisService {
 				candidate.extractions.add(snippet);
 			}
 
-			methods.add(candidate);
+			Matcher pathMatcher = Pattern.compile(
+					"COMPILATION UNIT /" + Pattern.quote(projectName) + "/(.+)").matcher(block);
+			if (!pathMatcher.find()) {
+				continue;
+			}
+			String relativePath = pathMatcher.group(1).trim();
+
+			FileAnalysis fileAnalysis = byFile.computeIfAbsent(relativePath, path -> {
+				FileAnalysis fa = new FileAnalysis();
+				fa.relativePath = path;
+				fa.classCode = readClassCode(projectName, path);
+				fa.methods = new ArrayList<>();
+				return fa;
+			});
+			fileAnalysis.methods.add(candidate);
+			rawSolutionsByFile.computeIfAbsent(relativePath, k -> new ArrayList<>()).add(solution);
+		}
+
+		for (FileAnalysis fileAnalysis : byFile.values()) {
+			List<String> allGroups = new ArrayList<>();
+			for (String rawSolution : rawSolutionsByFile.get(fileAnalysis.relativePath)) {
+				allGroups.addAll(extractSequenceGroups(rawSolution));
+			}
+			allGroups.sort(Comparator.comparingInt(DockerAnalysisService::firstOffsetOf));
+			fileAnalysis.solution = "[" + String.join(", ", allGroups) + "]";
 		}
 
 		AnalysisResult result = new AnalysisResult();
 		result.project = projectName;
-		result.solver = solver;
-		result.methods = methods;
-		result.classCodeByFile = classCodeByFile;
+		result.files = new ArrayList<>(byFile.values());
 		return result;
 	}
 
@@ -264,5 +257,19 @@ public class DockerAnalysisService {
 			LOGGER.warning("No se pudo leer el código completo de la clase (" + relativePath + "): " + e.getMessage());
 			return null;
 		}
+	}
+
+	private static List<String> extractSequenceGroups(String solution) {
+		List<String> groups = new ArrayList<>();
+		Matcher m = Pattern.compile("\\[[^\\[\\]]*\\]").matcher(solution);
+		while (m.find()) {
+			groups.add(m.group());
+		}
+		return groups;
+	}
+
+	private static int firstOffsetOf(String group) {
+		Matcher m = Pattern.compile("\\d+").matcher(group);
+		return m.find() ? Integer.parseInt(m.group()) : Integer.MAX_VALUE;
 	}
 }

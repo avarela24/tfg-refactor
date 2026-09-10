@@ -13,6 +13,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.sound.midi.Sequence;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -124,14 +126,12 @@ public class Solution {
         this.compilationUnit = compilationUnit;
 
         // Pattern to match arrays of numbers: "[123 456]"
-        //Pattern p = Pattern.compile("\\[([0-9\\s]+)\\]");
         Pattern p = Pattern.compile("\\[([0-9,\\s]+)\\]");
         Matcher m = p.matcher(solutionString);
 
         while (m.find()) {
             // content inside brackets: "123, 456, 789" (Sequence.toString() usa comas)
             String value = m.group(1);
-            //String[] offsets = value.split("\\s+");
             String[] offsets = value.split("[,\\s]+");
 
             List<ASTNode> nodes = new ArrayList<>();
@@ -558,9 +558,9 @@ public class Solution {
 
             // Generate Method Name (nombre del LLM si se ha suministrado, autogenerado si no)
             int extractionNumber = rangesForExtractions.size() - indexOfExtraction;
-            String customName = (customNames != null && customNames.size() >= extractionNumber)
-                    ? customNames.get(extractionNumber - 1)
-                    : null;
+            String customName = (customNames != null && customNames.size() > indexOfExtraction)
+					? customNames.get(indexOfExtraction)
+					: null;
 
             if (customName != null && !customName.isBlank()) {
                 currentMethodName = customName;

@@ -75,7 +75,7 @@ public class ApplyCodeExtractions implements IApplication {
 		// getProject() devuelve null (sin lanzar excepción) si el proyecto
 		// no existe en el workspace.
 		if (Utils.getProject(project) == null) {
-			LOGGER.severe("El proyecto '" + project + "' no existe en el workspace (¿se registró con WorkspaceImporter?).");
+			LOGGER.severe("El proyecto '" + project + "' no existe en el workspace.");
 			return -1;
 		}
 
@@ -87,8 +87,7 @@ public class ApplyCodeExtractions implements IApplication {
 				.createCompilationUnitFromFileInWorkspace(workspaceRelativePath);
 
 		if (cu == null || cu.getJavaElement() == null || !cu.getJavaElement().exists()) {
-			LOGGER.severe("No se pudo resolver el archivo en el workspace: " + workspaceRelativePath
-					+ " (¿relativePath incorrecto?)");
+			LOGGER.severe("No se pudo resolver el archivo en el workspace: " + workspaceRelativePath);
 			return -1;
 		}
 
@@ -117,6 +116,5 @@ public class ApplyCodeExtractions implements IApplication {
 
 	@Override
 	public void stop() {
-		// Nada que limpiar: la aplicación no mantiene ningún estado propio.
 	}
 }

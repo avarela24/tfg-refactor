@@ -16,12 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Clona un repositorio Git en el workspace local mediante un contenedor
- * efímero (alpine/git) — no depende de que git esté instalado en el host,
- * y nunca toca el remoto: es una copia de trabajo local, como pedía el
- * "Modo B" (repos ajenos o propios, sin escribir nunca al original).
- */
 @Service
 public class DockerCloneService {
 

@@ -12,10 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Escribe la petición de aplicación (apply-request.properties) en el
- * workspace compartido y ejecuta el modo "apply" del contenedor reduce-cc.
- */
 @Service
 public class DockerApplyService {
 
@@ -30,6 +26,9 @@ public class DockerApplyService {
 
 	@Value("${reducecc.docker-image:reduce-cc}")
 	private String dockerImage;
+
+	@Value("${reducecc.maven-cache-volume:mcp-maven-cache}")
+	private String mavenCacheVolume;
 
 	public ApplyResult applyNames(String projectName, String relativePath, String solution,
 			List<String> names) throws Exception {
@@ -49,6 +48,7 @@ public class DockerApplyService {
 				"docker", "run", "--rm",
 				"-v", workspaceDir + ":/workspace",
 				"-v", outputDir + ":/config/output",
+				"-v", mavenCacheVolume + ":/root/.m2",
 				dockerImage, "apply");
 
 		StringBuilder fullOutput = new StringBuilder();
@@ -83,14 +83,6 @@ public class DockerApplyService {
 		return result;
 	}
 
-	/**
-	 * Se queda solo con las líneas realmente informativas del log (qué se
-	 * extrajo, con qué nombre, y el resultado final) — descarta el arranque
-	 * de Eclipse/OSGi, idéntico en cada llamada y sin ningún valor para
-	 * quien lo lee después (el LLM). Si por lo que sea no coincide ninguna
-	 * línea con lo esperado, se devuelve el log completo como red de
-	 * seguridad, para no ocultar información en un caso inesperado.
-	 */
 	private String summarizeLog(String fullLog) {
 		StringBuilder summary = new StringBuilder();
 		for (String line : fullLog.split("\n")) {

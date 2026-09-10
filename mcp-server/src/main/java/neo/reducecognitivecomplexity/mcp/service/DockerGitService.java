@@ -25,15 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Reúne los archivos modificados tras aplicar una o más extracciones y
- * le entrega el resultado directamente al bot de GitHub — el LLM no
- * genera ningún JSON como texto, y n8n no interviene en este paso: este
- * servicio construye el cuerpo de la petición él mismo, con datos
- * leídos directamente del disco, y llama por su cuenta a
- * /tfg-bot/pr-ready (mismo mecanismo, y mismo motivo para forzar
- * HTTP/1.1, que ya usa DockerAnalysisService.notify()).
- */
 @Service
 public class DockerGitService {
 
@@ -48,7 +39,7 @@ public class DockerGitService {
 	@Value("${reducecc.pr-bot-url:http://127.0.0.1:3000/tfg-bot/pr-ready}")
 	private String prBotUrl;
 
-	/** Reúne los archivos modificados y le pide al bot que abra la Pull Request. */
+	// Reúne los archivos modificados y le pide al bot que abra la Pull Request.
 	public String createPullRequest(String projectName, String owner, String repo, String baseBranch) throws Exception {
 		List<String> modifiedPaths = listModifiedFiles(projectName);
 

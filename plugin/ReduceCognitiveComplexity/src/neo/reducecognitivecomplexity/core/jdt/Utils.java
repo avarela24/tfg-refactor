@@ -326,11 +326,20 @@ public class Utils {
 						// ACTUAL WORKSPACE MODIFICATION (Final Refactoring Application)
 						// =================================================================
 						Change undo = c.perform(npm);
-						workingCopy.reconcile(ICompilationUnit.NO_AST, true, null, npm);
+	                    
+	                    // Verify compilation after change on the real working copy
+	                    CompilationUnit astAfter = parse(workingCopy);
+	                    boolean compilationErrors = builtWithCompilationErrors(astAfter);
 
-						changes.add(c);
-						undoChanges.add(undo);
-						refactoringApplied = true;
+	                    if (compilationErrors) {
+	                        resultOfRefactoring = "Compilation unit does not compile after method extraction.";
+	                        feasible = false;
+	                        undo.perform(npm); // Revert the real change
+	                    } else {
+	                        changes.add(c);
+	                        undoChanges.add(undo);
+	                        refactoringApplied = true;
+	                    }
 					}
 	            } else {
 	                feasible = false;

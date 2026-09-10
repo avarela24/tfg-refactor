@@ -18,12 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Genera .project/.classpath para proyectos que todavía no los tengan,
- * detectando Maven, Gradle o Java simple. Para Maven, resuelve las
- * dependencias reales con un contenedor Maven efímero (mismo volumen de
- * caché que luego monta reduce-cc, para que las rutas absolutas cuadren).
- */
 @Service
 public class DockerProjectPreparationService {
 
