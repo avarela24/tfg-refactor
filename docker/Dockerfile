@@ -4,19 +4,6 @@ FROM maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /build
 
-# ---------------------------------------------------------------------------
-# CPLEX es una dependencia de COMPILACIÓN, no solo de ejecución: las clases
-# neo.reducecognitivecomplexity.core.solvers.ilp.IlpSolver / Model importan
-# ilog.cplex.IloCplex e ilog.concert.* directamente. El build de Tycho FALLA
-# si no hay un cplex.jar disponible, aunque solo penséis usar los solvers
-# heurísticos (ES-LSF/ES-SSF).
-#
-# Se instala aquí abajo (ver "Instalación silenciosa de CPLEX") a partir del
-# instalador oficial para Linux x86-64. Ese instalador (cplex-linux/*.bin)
-# es software con licencia: nunca debe subirse al repo (está en .gitignore)
-# ni quedar embebido en una imagen que se comparta o publique.
-# ---------------------------------------------------------------------------
-
 COPY .mvn .mvn
 COPY pom.xml .
 COPY target-platform target-platform
@@ -46,9 +33,6 @@ RUN mkdir -p /opt/product && \
 # ---------- STAGE 2: minimal runtime ----------
 FROM eclipse-temurin:25-jdk-jammy
 
-# Xvfb es necesario, no opcional: el plugin original inicializa un
-# Device/Color de SWT al arrancar (confirmado en Utils.initializeEnvironment()),
-# así que sin un display X real o virtual falla con SWTError.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       xvfb libgtk-3-0 libxtst6 libxrender1 libxi6 && \
     rm -rf /var/lib/apt/lists/*

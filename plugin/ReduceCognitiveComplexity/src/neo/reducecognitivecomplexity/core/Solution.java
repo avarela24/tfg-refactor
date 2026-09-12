@@ -540,27 +540,9 @@ public class Solution {
                                 lastExtractionCall = lastExtractionCall.getParent();
                         }
 
-                        // int computedEndPosition = currentInNextExtractions.getEnd() - (last.getEnd() - last.getStart())
-                        //         + (lastExtractionCall.getLength()) + auxiliarLength + 1;
-                        
-                        // if (deltaInNumberImportedLibraries > 0) {
-                        //     computedEndPosition = computedEndPosition - deltaInLengthImportedLibraries - deltaInNumberImportedLibraries;
-                        // }
-                        // currentInNextExtractions.setEnd(computedEndPosition);
-
-
-
-
                         int computedEndPosition = currentInNextExtractions.getEnd() - (last.getEnd() - last.getStart())
                                 + (lastExtractionCall.getLength()) + auxiliarLength + 1;
 
-                        if (printDebuggingInformation) {
-                            LOGGER.info("DIAGNÓSTICO nested: last=" + last + " contenido en currentInNextExtractions="
-                                    + currentInNextExtractions + " (antes de ajustar, end=" + currentInNextExtractions.getEnd() + ")");
-                            LOGGER.info("DIAGNÓSTICO nested: lastExtractionCall.length=" + lastExtractionCall.getLength()
-                                    + " auxiliarLength=" + auxiliarLength + " computedEndPosition=" + computedEndPosition);
-                        }
-                        
                         if (deltaInNumberImportedLibraries > 0) {
                             computedEndPosition = computedEndPosition - deltaInLengthImportedLibraries - deltaInNumberImportedLibraries;
                         }

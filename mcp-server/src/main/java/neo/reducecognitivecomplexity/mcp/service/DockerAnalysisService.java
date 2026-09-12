@@ -7,11 +7,13 @@ import neo.reducecognitivecomplexity.mcp.model.MethodCandidate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -137,6 +139,8 @@ public class DockerAnalysisService {
 		reduceCcLock.lock();
 		Path logFile = null;
 		try {
+        	deleteStaleSolutionFiles(projectName);
+
 			logFile = Files.createTempFile("reduce-cc-" + projectName + "-", ".log");
 			LOGGER.info(">>> Salida del análisis redirigida a: " + logFile);
 
@@ -153,7 +157,7 @@ public class DockerAnalysisService {
 				if (silence > stallLimitMillis) {
 					process.destroyForcibly();
 					throw new IllegalStateException(
-							"El análisis lleva más de 30 minutos sin ninguna señal de actividad — parece atascado, no simplemente lento.");
+							"El análisis lleva más de 30 minutos sin ninguna señal de actividad.");
 				}
 			}
 
@@ -161,7 +165,7 @@ public class DockerAnalysisService {
 			String fullOutput = Files.readString(logFile, StandardCharsets.UTF_8);
 			LOGGER.info(">>> Proceso Docker terminado, exitCode=" + exitCode + ", " + fullOutput.length() + " caracteres de salida");
 
-			return parseOutput(projectName, fullOutput);
+			return parseOutput(projectName);
 		} finally {
 			reduceCcLock.unlock();
 			if (logFile != null) {
@@ -174,64 +178,60 @@ public class DockerAnalysisService {
 		}
 	}
 
-	private AnalysisResult parseOutput(String projectName, String output) {
+	private AnalysisResult parseOutput(String projectName) throws IOException {
 		Map<String, FileAnalysis> byFile = new LinkedHashMap<>();
 		Map<String, List<String>> rawSolutionsByFile = new LinkedHashMap<>();
 
-		Pattern methodHeader = Pattern.compile("Processing method: (\\S+) \\(CC: (\\d+)\\)");
-		Matcher headerMatcher = methodHeader.matcher(output);
+		try (DirectoryStream<Path> files = Files.newDirectoryStream(
+				Paths.get(outputDir), projectName + "@*.solution")) {
 
-		List<Integer> starts = new ArrayList<>();
-		List<String> names = new ArrayList<>();
-		List<Integer> complexities = new ArrayList<>();
-		while (headerMatcher.find()) {
-			starts.add(headerMatcher.start());
-			names.add(headerMatcher.group(1));
-			complexities.add(Integer.parseInt(headerMatcher.group(2)));
-		}
+			for (Path solutionFile : files) {
+				String block = Files.readString(solutionFile, StandardCharsets.UTF_8);
 
-		for (int i = 0; i < starts.size(); i++) {
-			int start = starts.get(i);
-			int end = (i + 1 < starts.size()) ? starts.get(i + 1) : output.length();
-			String block = output.substring(start, end);
+				Matcher methodNameMatcher = Pattern.compile("methodName=([^,]+),").matcher(block);
+				if (!methodNameMatcher.find()) {
+					continue;
+				}
+				String methodName = methodNameMatcher.group(1);
 
-			Matcher solutionMatcher = Pattern.compile("Refactoring operations:\\s*\\n(.*)").matcher(block);
-			String solution = solutionMatcher.find() ? solutionMatcher.group(1).trim() : null;
+				Matcher sequenceListMatcher = Pattern.compile("sequenceList=\\[(.*?)\\], isFeasible").matcher(block);
+				String solution = sequenceListMatcher.find() ? "[" + sequenceListMatcher.group(1) + "]" : null;
 
-			if (solution == null || solution.equals("[]")) {
-				continue;
+				if (solution == null || solution.equals("[]")) {
+					continue;
+				}
+
+				MethodCandidate candidate = new MethodCandidate();
+				candidate.methodName = methodName;
+				candidate.extractions = new ArrayList<>();
+
+				Matcher extractionMatcher = Pattern
+						.compile("EXTRACTION (\\d+)\\s*\\n.*?CODE: \\[(.*?)\\]\\s*\\n", Pattern.DOTALL)
+						.matcher(block);
+				while (extractionMatcher.find()) {
+					ExtractionSnippet snippet = new ExtractionSnippet();
+					snippet.index = Integer.parseInt(extractionMatcher.group(1));
+					snippet.code = extractionMatcher.group(2).trim();
+					candidate.extractions.add(snippet);
+				}
+
+				Matcher pathMatcher = Pattern.compile(
+						"COMPILATION UNIT /" + Pattern.quote(projectName) + "/(.+)").matcher(block);
+				if (!pathMatcher.find()) {
+					continue;
+				}
+				String relativePath = pathMatcher.group(1).trim();
+
+				FileAnalysis fileAnalysis = byFile.computeIfAbsent(relativePath, path -> {
+					FileAnalysis fa = new FileAnalysis();
+					fa.relativePath = path;
+					fa.classCode = readClassCode(projectName, path);
+					fa.methods = new ArrayList<>();
+					return fa;
+				});
+				fileAnalysis.methods.add(candidate);
+				rawSolutionsByFile.computeIfAbsent(relativePath, k -> new ArrayList<>()).add(solution);
 			}
-
-			MethodCandidate candidate = new MethodCandidate();
-			candidate.methodName = names.get(i);
-			candidate.complexity = complexities.get(i);
-
-			Matcher extractionMatcher = Pattern
-					.compile("EXTRACTION (\\d+)\\s*\\n.*?CODE: \\[(.*?)\\]\\s*\\n", Pattern.DOTALL)
-					.matcher(block);
-			while (extractionMatcher.find()) {
-				ExtractionSnippet snippet = new ExtractionSnippet();
-				snippet.index = Integer.parseInt(extractionMatcher.group(1));
-				snippet.code = extractionMatcher.group(2).trim();
-				candidate.extractions.add(snippet);
-			}
-
-			Matcher pathMatcher = Pattern.compile(
-					"COMPILATION UNIT /" + Pattern.quote(projectName) + "/(.+)").matcher(block);
-			if (!pathMatcher.find()) {
-				continue;
-			}
-			String relativePath = pathMatcher.group(1).trim();
-
-			FileAnalysis fileAnalysis = byFile.computeIfAbsent(relativePath, path -> {
-				FileAnalysis fa = new FileAnalysis();
-				fa.relativePath = path;
-				fa.classCode = readClassCode(projectName, path);
-				fa.methods = new ArrayList<>();
-				return fa;
-			});
-			fileAnalysis.methods.add(candidate);
-			rawSolutionsByFile.computeIfAbsent(relativePath, k -> new ArrayList<>()).add(solution);
 		}
 
 		for (FileAnalysis fileAnalysis : byFile.values()) {
@@ -271,5 +271,14 @@ public class DockerAnalysisService {
 	private static int firstOffsetOf(String group) {
 		Matcher m = Pattern.compile("\\d+").matcher(group);
 		return m.find() ? Integer.parseInt(m.group()) : Integer.MAX_VALUE;
+	}
+
+	private void deleteStaleSolutionFiles(String projectName) throws IOException {
+		try (DirectoryStream<Path> files = Files.newDirectoryStream(
+				Paths.get(outputDir), projectName + "@*.solution")) {
+			for (Path file : files) {
+				Files.deleteIfExists(file);
+			}
+		}
 	}
 }

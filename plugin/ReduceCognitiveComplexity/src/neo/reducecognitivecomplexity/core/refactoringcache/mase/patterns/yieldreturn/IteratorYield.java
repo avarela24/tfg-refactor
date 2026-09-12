@@ -81,7 +81,7 @@ public class IteratorYield<T> implements Iterator<T>
 				{
 					if (th != null)
 					{
-						th.stop();
+						th.interrupt();
 					}
 					th=null;
 					throw new NoSuchElementException();
@@ -149,7 +149,7 @@ public class IteratorYield<T> implements Iterator<T>
 				{
 					if (th != null)
 					{
-						th.stop();
+						th.interrupt();
 					}
 					th=null;
 					return false;

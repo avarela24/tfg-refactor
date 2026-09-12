@@ -332,7 +332,8 @@ public class Utils {
 	                    boolean compilationErrors = builtWithCompilationErrors(astAfter);
 
 	                    if (compilationErrors) {
-	                        resultOfRefactoring = "Compilation unit does not compile after method extraction.";
+	                        resultOfRefactoring = "Compilation unit does not compile after method extraction."
+                                + getCompilationUnitProblems(astAfter);
 	                        feasible = false;
 	                        undo.perform(npm); // Revert the real change
 	                    } else {

@@ -2,7 +2,6 @@ package neo.reducecognitivecomplexity.core.solvers.exhaustivesearch;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.logging.Logger;
 
 import neo.reducecognitivecomplexity.app.Constants;
 import neo.reducecognitivecomplexity.core.Solution;
@@ -23,7 +22,6 @@ public class EnumerativeSearchSolver implements RefactoringSolver {
 
     private final EnumerativeSearchConfig config;
     private Solution bestSolution;
-    private static final Logger LOGGER = Logger.getLogger(EnumerativeSearchSolver.class.getName());
 
     public EnumerativeSearchSolver(EnumerativeSearchConfig config) {
         this.config = config;
@@ -48,7 +46,6 @@ public class EnumerativeSearchSolver implements RefactoringSolver {
                 // Wrap and evaluate the candidate solution
                 Solution sol = new Solution(solution, ctx.compilationUnit, ctx.ast);
                 sol.evaluate(cache);
-                LOGGER.info("  [DEBUG] candidato=" + solution + " fitness=" + sol.getFitness());
 
                 // Update best solution (minimize fitness)
                 if (bestSolution == null || sol.getFitness() < bestSolution.getFitness()) {

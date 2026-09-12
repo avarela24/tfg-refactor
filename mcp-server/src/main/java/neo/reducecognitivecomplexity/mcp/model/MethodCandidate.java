@@ -6,6 +6,5 @@ import java.util.List;
 // Un método con complejidad cognitiva alta, y lo que el solver propone para él.
 public class MethodCandidate {
 	public String methodName;
-	public int complexity;
 	public List<ExtractionSnippet> extractions = new ArrayList<>();
 }
