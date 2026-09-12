@@ -1,8 +1,7 @@
 # Reducción de complejidad cognitiva con LLMs + MCP
 
-TFG: agente basado en un LLM, conectado vía protocolo MCP a un servidor
-especializado, que asiste en la refactorización de código Java para
-reducir su complejidad cognitiva.
+TFG: agente basado en un LLM, conectado vía protocolo MCP a un servidor que asiste
+en la refactorización de código Java para reducir su complejidad cognitiva.
 
 ## Cómo encajan las piezas
 

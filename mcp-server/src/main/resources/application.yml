@@ -3,7 +3,7 @@ spring:
     mcp:
       server:
         name: reduce-cognitive-complexity-mcp
-        version: 1.0.0-SNAPSHOT
+        version: 1.0.0
         type: SYNC
         protocol: STREAMABLE
 
@@ -11,6 +11,7 @@ server:
   port: 8081
 
 # workspace-dir y output-dir deben ser rutas absolutas del sistema anfitrión (no del contenedor).
+# Cambiar analysis-callback-url-bot y analysis-callback-url-chat si n8n no se encuentra en ese puerto
 reducecc:
   workspace-dir: ${REDUCECC_WORKSPACE_DIR:C:/Users/Usuario/Documents/tfg-refactor/workspace}
   output-dir: ${REDUCECC_OUTPUT_DIR:C:/Users/Usuario/Documents/tfg-refactor/output}
